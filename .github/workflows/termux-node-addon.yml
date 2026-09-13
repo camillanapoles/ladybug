@@ -28,16 +28,22 @@ jobs:
             /data/data/com.termux/files/usr/bin/bash -c '
               set -e
               export PATH=/data/data/com.termux/files/usr/bin:$PATH
+              echo "=== [1/6] apt update — $(date -u +%H:%M:%S) ==="
               apt update -o Acquire::Retries=5 || apt update -o Acquire::Retries=5
-              apt install -y -o Acquire::Retries=5 clang cmake ninja make python nodejs openssl \
-                || apt install -y --fix-missing clang cmake ninja make python nodejs openssl
+              echo "=== [2/6] apt install toolchain ==="
+              apt install -y -o Acquire::Retries=5 clang cmake ninja make python nodejs openssl file \
+                || apt install -y --fix-missing clang cmake ninja make python nodejs openssl file
+              echo "=== [3/6] versões: $(node --version) | cmake $(cmake --version | head -1 | cut -d" " -f3) | $(clang --version | head -1)"
               cd tools/nodejs_api
+              echo "=== [4/6] npm install (node-addon-api/cmake-js) — $(date -u +%H:%M:%S) ==="
               npm install --no-audit --no-fund
               cd ../..
+              echo "=== [5/6] make nodejs (ninja) — $(date -u +%H:%M:%S) ==="
               make nodejs NUM_THREADS=${{ inputs.num_threads }} GEN=Ninja
-              echo "=== sha256 ==="
+              echo "=== [6/6] artifact pronto — $(date -u +%H:%M:%S) ==="
+              ls -la tools/nodejs_api/build/lbugjs.node
+              file tools/nodejs_api/build/lbugjs.node
               sha256sum tools/nodejs_api/build/lbugjs.node
-              file tools/nodejs_api/build/lbugjs.node || true
             '
 
       - name: Upload artifact
