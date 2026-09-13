@@ -22,11 +22,10 @@ jobs:
       - name: Build lbugjs.node inside official Termux container
         run: |
           docker run --rm \
-            -u builder \
-            -v "$PWD:/home/builder/work" \
-            -w /home/builder/work \
-            --entrypoint /data/data/com.termux/files/usr/bin/bash \
-            termux/termux-docker:latest -c '
+            -v "$PWD:/work" \
+            -w /work \
+            termux/termux-docker:latest \
+            /data/data/com.termux/files/usr/bin/bash -c '
               set -e
               export PATH=/data/data/com.termux/files/usr/bin:$PATH
               pkg update -y
