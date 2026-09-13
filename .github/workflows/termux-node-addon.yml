@@ -1,0 +1,47 @@
+name: termux-node-addon
+
+on:
+  workflow_dispatch:
+    inputs:
+      num_threads:
+        description: "Parallel build jobs"
+        required: false
+        default: "4"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fix ownership for in-container user (builder, uid 1000)
+        run: sudo chown -R 1000:1000 "$PWD"
+
+      - name: Build lbugjs.node inside official Termux container
+        run: |
+          docker run --rm \
+            -v "$PWD:/home/builder/work" \
+            -w /home/builder/work \
+            --entrypoint /data/data/com.termux/files/usr/bin/bash \
+            termux/termux-docker:latest -c '
+              set -e
+              export PATH=/data/data/com.termux/files/usr/bin:$PATH
+              pkg update -y
+              pkg install -y clang cmake ninja make python nodejs openssl
+              cd tools/nodejs_api
+              npm install --no-audit --no-fund
+              cd ../..
+              make nodejs NUM_THREADS=${{ inputs.num_threads }} GEN=Ninja
+              echo "=== sha256 ==="
+              sha256sum tools/nodejs_api/build/lbugjs.node
+              file tools/nodejs_api/build/lbugjs.node || true
+            '
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lbugjs-termux-aarch64
+          path: tools/nodejs_api/build/lbugjs.node
+          if-no-files-found: error
